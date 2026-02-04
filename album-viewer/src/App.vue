@@ -1,59 +1,104 @@
 <template>
   <div class="app">
     <header class="header">
-      <h1>🎵 Album Collection</h1>
-      <p>Discover amazing music albums</p>
+      <div class="header-content">
+        <div class="header-text">
+          <h1>🎵 Album Collection</h1>
+          <p>Discover amazing music albums</p>
+        </div>
+
+        <CartIcon :itemCount="itemCount" @click="isCartOpen = true" />
+      </div>
+
+      <nav class="nav">
+        <button
+          @click="currentView = 'albums'"
+          :class="{ active: currentView === 'albums' }"
+          class="nav-btn"
+        >
+          Albums
+        </button>
+        <button
+          @click="currentView = 'sales'"
+          :class="{ active: currentView === 'sales' }"
+          class="nav-btn"
+        >
+          Sales Analytics
+        </button>
+      </nav>
     </header>
 
     <main class="main">
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
-        <p>Loading albums...</p>
+      <!-- Albums View -->
+      <div v-if="currentView === 'albums'">
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>Loading albums...</p>
+        </div>
+
+        <div v-else-if="error" class="error">
+          <p>{{ error }}</p>
+          <button @click="fetchAlbums" class="retry-btn">Try Again</button>
+        </div>
+
+        <div v-else class="albums-grid">
+          <AlbumCard v-for="album in albums" :key="album.id" :album="album" />
+        </div>
       </div>
 
-      <div v-else-if="error" class="error">
-        <p>{{ error }}</p>
-        <button @click="fetchAlbums" class="retry-btn">Try Again</button>
-      </div>
-
-      <div v-else class="albums-grid">
-        <AlbumCard 
-          v-for="album in albums" 
-          :key="album.id" 
-          :album="album" 
-        />
+      <!-- Sales View -->
+      <div v-else-if="currentView === 'sales'">
+        <SalesChart />
       </div>
     </main>
+
+    <!-- Cart Panel -->
+    <CartPanel
+      :isOpen="isCartOpen"
+      :cartItems="items"
+      :totalPrice="totalPrice"
+      @close="isCartOpen = false"
+      @remove-item="removeFromCart"
+      @clear-cart="clearCart"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
-import AlbumCard from './components/AlbumCard.vue'
-import type { Album } from './types/album'
+import { ref, onMounted } from "vue";
+import axios from "axios";
+import AlbumCard from "./components/AlbumCard.vue";
+import SalesChart from "./components/SalesChart.vue";
+import CartIcon from "./components/CartIcon.vue";
+import CartPanel from "./components/CartPanel.vue";
+import type { Album } from "./types/album";
+import { useCart } from "./composables/useCart";
 
-const albums = ref<Album[]>([])
-const loading = ref<boolean>(true)
-const error = ref<string | null>(null)
+const currentView = ref<"albums" | "sales">("albums");
+const albums = ref<Album[]>([]);
+const loading = ref<boolean>(true);
+const error = ref<string | null>(null);
+const isCartOpen = ref<boolean>(false);
+
+const { items, itemCount, totalPrice, removeFromCart, clearCart } = useCart();
 
 const fetchAlbums = async (): Promise<void> => {
   try {
-    loading.value = true
-    error.value = null
-    const response = await axios.get<Album[]>('/albums')
-    albums.value = response.data
+    loading.value = true;
+    error.value = null;
+    const response = await axios.get<Album[]>("/albums");
+    albums.value = response.data;
   } catch (err) {
-    error.value = 'Failed to load albums. Please make sure the API is running.'
-    console.error('Error fetching albums:', err)
+    error.value = "Failed to load albums. Please make sure the API is running.";
+    console.error("Error fetching albums:", err);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 onMounted(() => {
-  fetchAlbums()
-})
+  fetchAlbums();
+});
 </script>
 
 <style scoped>
@@ -68,6 +113,20 @@ onMounted(() => {
   color: white;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto 1rem;
+  padding: 0 1rem;
+}
+
+.header-text {
+  flex: 1;
+  text-align: center;
+}
+
 .header h1 {
   font-size: 3rem;
   margin-bottom: 0.5rem;
@@ -77,6 +136,35 @@ onMounted(() => {
 .header p {
   font-size: 1.2rem;
   opacity: 0.9;
+}
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.nav-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  padding: 0.75rem 2rem;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: white;
+}
+
+.nav-btn.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
 }
 
 .main {
@@ -104,8 +192,12 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error {
@@ -134,8 +226,12 @@ onMounted(() => {
   background: white;
   color: #667eea;
 }
+-content {
+  flex-direction: column;
+  gap: 1rem;
+}
 
-.albums-grid {
+.header .albums-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
@@ -146,11 +242,11 @@ onMounted(() => {
   .app {
     padding: 1rem;
   }
-  
+
   .header h1 {
     font-size: 2rem;
   }
-  
+
   .albums-grid {
     grid-template-columns: 1fr;
     gap: 1rem;

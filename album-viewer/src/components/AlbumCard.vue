@@ -1,8 +1,8 @@
 <template>
   <div class="album-card">
     <div class="album-image">
-      <img 
-        :src="album.image_url" 
+      <img
+        :src="album.image_url"
         :alt="album.title"
         @error="handleImageError"
         loading="lazy"
@@ -11,7 +11,7 @@
         <div class="play-button">▶</div>
       </div>
     </div>
-    
+
     <div class="album-info">
       <h3 class="album-title">{{ album.title }}</h3>
       <p class="album-artist">{{ album.artist }}</p>
@@ -19,27 +19,41 @@
         <span class="price">${{ album.price.toFixed(2) }}</span>
       </div>
     </div>
-    
+
     <div class="album-actions">
-      <button class="btn btn-primary">Add to Cart</button>
+      <button
+        @click="handleAddToCart"
+        :class="['btn', 'btn-primary', { 'in-cart': isInCart(album.id) }]"
+        :disabled="isInCart(album.id)"
+      >
+        {{ isInCart(album.id) ? "✓ In Cart" : "Add to Cart" }}
+      </button>
       <button class="btn btn-secondary">Preview</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Album } from '../types/album'
+import type { Album } from "../types/album";
+import { useCart } from "../composables/useCart";
 
 interface Props {
-  album: Album
+  album: Album;
 }
 
-defineProps<Props>()
+const props = defineProps<Props>();
+
+const { addToCart, isInCart } = useCart();
 
 const handleImageError = (event: Event): void => {
-  const target = event.target as HTMLImageElement
-  target.src = 'https://via.placeholder.com/300x300/667eea/white?text=Album+Cover'
-}
+  const target = event.target as HTMLImageElement;
+  target.src =
+    "https://via.placeholder.com/300x300/667eea/white?text=Album+Cover";
+};
+
+const handleAddToCart = (): void => {
+  addToCart(props.album);
+};
 </script>
 
 <style scoped>
@@ -162,9 +176,19 @@ const handleImageError = (event: Event): void => {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #5a6fd8;
   transform: translateY(-2px);
+}
+
+.btn-primary.in-cart {
+  background: #2ecc71;
+  cursor: not-allowed;
+}
+
+.btn-primary:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -183,12 +207,12 @@ const handleImageError = (event: Event): void => {
   .album-info {
     padding: 1rem;
   }
-  
+
   .album-actions {
     padding: 0 1rem 1rem;
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
   }
